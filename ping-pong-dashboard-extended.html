@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ping-Pong-Ticket Detection Dashboard – Extended</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px 32px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .stats-bar {
+            background: white;
+            padding: 20px 32px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .stat-card {
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #ddd;
+        }
+
+        .stat-card.critical {
+            border-left-color: #EF5350;
+            background: #fef1f1;
+        }
+
+        .stat-card.warning {
+            border-left-color: #FFA726;
+            background: #fff8f1;
+        }
+
+        .stat-card.normal {
+            border-left-color: #4CAF50;
+            background: #f1f8f4;
+        }
+
+        .stat-card.quality {
+            border-left-color: #9C27B0;
+            background: #f3e5f5;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .controls {
+            padding: 24px 32px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 8px;
+            background: #f5f5f5;
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        .mode-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .filter-group label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+        }
+
+        select {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            background: white;
+        }
+
+        .content {
+            padding: 32px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .ticket-list {
+            display: grid;
+            gap: 16px;
+        }
+
+        .ticket-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 4px solid #ddd;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ticket-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            transform: translateX(4px);
+        }
+
+        .ticket-card.type-c {
+            border-left-color: #EF5350;
+        }
+
+        .ticket-card.type-b {
+            border-left-color: #FFA726;
+        }
+
+        .ticket-card.type-a {
+            border-left-color: #4CAF50;
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .ticket-id {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .ticket-badges {
+            display: flex;
+            gap: 8px;
+        }
+
+        .ticket-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ticket-badge.type-c {
+            background: #fef1f1;
+            color: #EF5350;
+        }
+
+        .ticket-badge.type-b {
+            background: #fff8f1;
+            color: #FFA726;
+        }
+
+        .ticket-badge.type-a {
+            background: #f1f8f4;
+            color: #4CAF50;
+        }
+
+        .ticket-badge.quality-low {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .ticket-badge.quality-medium {
+            background: #fff8e1;
+            color: #f57c00;
+        }
+
+        .ticket-badge.quality-high {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .ticket-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+
+        .ticket-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .metric {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .metric-icon {
+            font-size: 16px;
+        }
+
+        .metric-label {
+            color: #888;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .metric.critical .metric-value {
+            color: #EF5350;
+        }
+
+        .reason-preview {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            border-left: 3px solid #e0e0e0;
+        }
+
+        .reason-preview.suspicious {
+            border-left-color: #FFA726;
+            background: #fff8f1;
+        }
+
+        .reason-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .reason-text {
+            font-size: 13px;
+            color: #555;
+            font-style: italic;
+        }
+
+        .ticket-action {
+            padding-top: 16px;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .action-label {
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #5568d3;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            padding: 24px 32px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 24px;
+            color: #1a1a1a;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #999;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 32px;
+        }
+
+        .detail-section {
+            margin-bottom: 32px;
+        }
+
+        .detail-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #333;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .detail-item {
+            padding: 16px;
+            background: #f9f9f9;
+            border-radius: 6px;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .detail-value.critical {
+            color: #EF5350;
+        }
+
+        .detail-value.warning {
+            color: #FFA726;
+        }
+
+        .detail-value.normal {
+            color: #4CAF50;
+        }
+
+        .decision-box {
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+
+        .decision-box.type-c {
+            background: #fef1f1;
+            border: 2px solid #EF5350;
+        }
+
+        .decision-box.type-b {
+            background: #fff8f1;
+            border: 2px solid #FFA726;
+        }
+
+        .decision-box.type-a {
+            background: #f1f8f4;
+            border: 2px solid #4CAF50;
+        }
+
+        .decision-box h4 {
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .decision-box p {
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .decision-box ol {
+            margin-left: 20px;
+            margin-top: 12px;
+        }
+
+        .decision-box li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: #e0e0e0;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -32px;
+            top: 6px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #667eea;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px #667eea;
+        }
+
+        .timeline-item.loop::before {
+            background: #EF5350;
+            box-shadow: 0 0 0 2px #EF5350;
+        }
+
+        .timeline-item.suspicious::before {
+            background: #FFA726;
+            box-shadow: 0 0 0 2px #FFA726;
+        }
+
+        .timeline-content {
+            background: #f9f9f9;
+            padding: 16px;
+            border-radius: 6px;
+        }
+
+        .timeline-content.suspicious {
+            background: #fff8f1;
+            border: 1px solid #FFE0B2;
+        }
+
+        .timeline-content.loop {
+            background: #fef1f1;
+            border: 1px solid #FFCDD2;
+        }
+
+        .timeline-team {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .timeline-action {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .timeline-date {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 12px;
+        }
+
+        .timeline-reason-box {
+            background: white;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+            border-left: 3px solid #2196F3;
+        }
+
+        .timeline-reason-box.missing {
+            border-left-color: #EF5350;
+            background: #ffebee;
+        }
+
+        .timeline-reason-box.suspicious {
+            border-left-color: #FFA726;
+            background: #fff3e0;
+        }
+
+        .reason-field {
+            margin-bottom: 8px;
+        }
+
+        .reason-field-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .reason-field-value {
+            font-size: 13px;
+            color: #333;
+        }
+
+        .reason-field-value.missing {
+            color: #EF5350;
+            font-style: italic;
+        }
+
+        .quality-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 8px;
+        }
+
+        .quality-badge.low {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+
+        .quality-badge.medium {
+            background: #ffe0b2;
+            color: #e65100;
+        }
+
+        .quality-badge.high {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .analysis-box {
+            background: #f0f7ff;
+            border: 1px solid #BBDEFB;
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+
+        .analysis-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1976D2;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .analysis-text {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .warning-box {
+            background: #fff8e1;
+            border: 1px solid #FFE082;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 12px;
+            display: flex;
+            gap: 12px;
+            align-items: start;
+        }
+
+        .warning-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .warning-text {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .transfer-form-demo {
+            background: #f9f9f9;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .transfer-form-demo h4 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: #666;
+        }
+
+        .form-field {
+            margin-bottom: 16px;
+        }
+
+        .form-field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .form-field label .required {
+            color: #EF5350;
+        }
+
+        .form-field input,
+        .form-field textarea,
+        .form-field select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-field textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        @media (max-width: 768px) {
+            .stats-bar {
+                grid-template-columns: 1fr;
+            }
+            
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .ticket-badges {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Ping-Pong-Ticket Detection Dashboard – Extended</h1>
+        <p>Mit Weitergabe-Begründungsanalyse & Qualitäts-Scoring | TopDesk Integration</p>
+    </div>
+
+    <div class="stats-bar">
+        <div class="stat-card critical">
+            <div class="stat-label">Sofort eingreifen</div>
+            <div class="stat-value" id="stat-critical">0</div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-label">Klärung erforderlich</div>
+            <div class="stat-value" id="stat-warning">0</div>
+        </div>
+        <div class="stat-card normal">
+            <div class="stat-label">Beobachten</div>
+            <div class="stat-value" id="stat-normal">0</div>
+        </div>
+        <div class="stat-card quality">
+            <div class="stat-label">Ø Begründungs-Qualität</div>
+            <div class="stat-value" id="stat-quality">0%</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="mode-toggle">
+            <button class="mode-btn active" onclick="switchMode('demo')">Demo-Modus</button>
+        </div>
+
+        <div class="filter-group">
+            <label>Filtern:</label>
+            <select id="filterType" onchange="applyFilters()">
+                <option value="all">Alle Tickets</option>
+                <option value="type-c">Nur Typ C (Eingreifen)</option>
+                <option value="type-b">Nur Typ B (Klären)</option>
+                <option value="type-a">Nur Typ A (Beobachten)</option>
+                <option value="quality-low">Schlechte Begründungen</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label>Sortieren:</label>
+            <select id="sortBy" onchange="applyFilters()">
+                <option value="priority">Nach Dringlichkeit</option>
+                <option value="quality">Nach Begründungs-Qualität</option>
+                <option value="transfers">Nach Weitergaben</option>
+                <option value="age">Nach Liegezeit</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="ticket-list" id="ticketList">
+            <!-- Wird dynamisch gefüllt -->
+        </div>
+    </div>
+
+    <!-- Modal für Ticket-Details -->
+    <div class="modal" id="ticketModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTicketId">TICKET-12345</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Wird dynamisch gefüllt -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Demo-Daten mit Weitergabe-Begründungen
+        const demoTickets = [
+            {
+                id: 'TICKET-4782',
+                title: 'VPN-Verbindung funktioniert nicht nach Windows Update',
+                transfers: 4,
+                loops: 1,
+                age: 8,
+                ageCategory: 'critical',
+                ownership: 'critical',
+                history: [
+                    { 
+                        team: 'Service Desk L1', 
+                        date: '2026-01-23 09:15', 
+                        action: 'Ticket erstellt',
+                        reason: null
+                    },
+                    { 
+                        team: 'Network Team', 
+                        date: '2026-01-23 10:30', 
+                        action: 'Weitergeleitet',
+                        reason: {
+                            category: 'Zuständigkeit',
+                            description: 'VPN-Verbindungsprobleme fallen in den Zuständigkeitsbereich des Network Teams',
+                            attemptedSolution: 'Standard-Troubleshooting (Neustart, Cache löschen) ohne Erfolg',
+                            targetTeam: 'Network Team',
+                            quality: 'high'
+                        }
+                    },
+                    { 
+                        team: 'Service Desk L1', 
+                        date: '2026-01-24 14:20', 
+                        action: 'Zurückgewiesen (A→B→A)', 
+                        loop: true,
+                        reason: {
+                            category: 'Nicht zuständig',
+                            description: 'Kein Netzwerkproblem, sondern Windows-Update-bezogen',
+                            attemptedSolution: 'VPN-Logs geprüft, keine Fehler',
+                            targetTeam: 'Service Desk L1',
+                            quality: 'medium'
+                        }
+                    },
+                    { 
+                        team: 'Windows Support', 
+                        date: '2026-01-25 08:45', 
+                        action: 'Weitergeleitet',
+                        reason: {
+                            category: 'Zuständigkeit',
+                            description: 'Windows Update Problem',
+                            attemptedSolution: null, // MISSING!
+                            targetTeam: 'Windows Support',
+                            quality: 'low'
+                        }
+                    },
+                    { 
+                        team: 'Security Team', 
+                        date: '2026-01-28 11:00', 
+                        action: 'Weitergeleitet',
+                        reason: {
+                            category: 'Eskalation',
+                            description: 'Könnte Firewall-Problem sein',
+                            attemptedSolution: 'Nichts gemacht',
+                            targetTeam: 'Security Team',
+                            quality: 'low'
+                        }
+                    }
+                ],
+                currentTeam: 'Security Team',
+                criticalCount: 3,
+                decisionType: 'type-c',
+                decisionLabel: 'Typ C – Eingreifen',
+                reasoningQuality: 45 // Prozent
+            },
+            {
+                id: 'TICKET-4801',
+                title: 'Drucker druckt nur noch einseitig',
+                transfers: 3,
+                loops: 1,
+                age: 5,
+                ageCategory: 'warning',
+                ownership: 'normal',
+                history: [
+                    { 
+                        team: 'Service Desk L1', 
+                        date: '2026-01-26 13:20', 
+                        action: 'Ticket erstellt',
+                        reason: null
+                    },
+                    { 
+                        team: 'Hardware Support', 
+                        date: '2026-01-26 14:00', 
+                        action: 'Weitergeleitet',
+                        reason: {
+                            category: 'Zuständigkeit',
+                            description: 'Hardware-bezogenes Druckerproblem',
+                            attemptedSolution: 'Treiber-Neuinstallation durchgeführt, Problem besteht weiter',
+                            targetTeam: 'Hardware Support',
+                            quality: 'high'
+                        }
+                    },
+                    { 
+                        team: 'Service Desk L1', 
+                        date: '2026-01-27 09:15', 
+                        action: 'Zurückgewiesen (A→B→A)', 
+                        loop: true,
+                        reason: {
+                            category: 'Nicht zuständig',
+                            description: 'Keine Hardware-Defekt, Software-Einstellung',
+                            attemptedSolution: 'Drucker-Einstellungen geprüft',
+                            targetTeam: 'Service Desk L1',
+                            quality: 'medium'
+                        }
+                    },
+                    { 
+                        team: 'Print Services', 
+                        date: '2026-01-28 10:30', 
+                        action: 'Weitergeleitet',
+                        reason: {
+                            category: 'Zuständigkeit',
+                            description: 'Print Services ist für Druckereinstellungen zuständig',
+                            attemptedSolution: 'Standard-Einstellungen zurückgesetzt',
+                            targetTeam: 'Print Services',
+                            quality: 'high'
+                        }
+                    }
+                ],
+                currentTeam: 'Print Services',
+                criticalCount: 2,
+                decisionType: 'type-b',
+                decisionLabel: 'Typ B – Klären',
+                reasoningQuality: 75
+            },
+            {
+                id: 'TICKET-4856',
+                title: 'Zugriff auf Shared Drive verweigert',
+                transfers: 3,
+                loops: 2,
+                age: 11,
+                ageCategory: 'critical',
+                ownership: 'critical',
+                history: [
+                    { 
+                        team: 'Service Desk L1', 
+                        date: '2026-01-20 11:00', 
+                        action: 'Ticket erstellt',
+                        reason: null
+                    },
+                    { 
+                        team: 'File Services', 
+                        date: '2026-01-20 12:30', 
+                        action: 'Weitergeleitet',
+                        reason: {
+                            category: 'Zuständigkeit',
+                            description: 'File Share Problem',
+                            attemptedSolution: null, // MISSING!
+                            targetTeam: 'File Services',
+                            quality: 'low'
+                        }
+                    },
+                    { 
+                        team: 'Service Desk L1', 
+                        date: '2026-01-22 09:00', 
+                        action: 'Zurückgewiesen (A→B→A)', 
+                        loop: true,
+                        reason: {
+                            category: 'Nicht zuständig',
+                            description: 'Berechtigungsproblem, nicht File Share',
+                            attemptedSolution: null, // MISSING!
+                            targetTeam: 'Service Desk L1',
+                            quality: 'low'
+                        }
+                    },
+                    { 
+                        team: 'File Services', 
+                        date: '2026-01-23 10:15', 
+                        action: 'Weitergeleitet',
+                        reason: {
+                            category: 'Eskalation',
+                            description: 'AD-Berechtigungen prüfen',
+                            attemptedSolution: 'Share-Permissions geprüft, sind korrekt',
+                            targetTeam: 'File Services',
+                            quality: 'medium'
+                        }
+                    },
+                    { 
+                        team: 'Service Desk L1', 
+                        date: '2026-01-25 14:30', 
+                        action: 'Zurückgewiesen (B→A→B)', 
+                        loop: true,
+                        reason: {
+                            category: 'Nicht zuständig',
+                            description: 'Das ist AD Problem',
+                            attemptedSolution: null, // MISSING!
+                            targetTeam: 'Service Desk L1',
+                            quality: 'low'
+                        }
+                    },
+                    { 
+                        team: 'Active Directory Team', 
+                        date: '2026-01-28 08:00', 
+                        action: 'Weitergeleitet',
+                        reason: {
+                            category: 'Zuständigkeit',
+                            description: 'Active Directory Team muss Berechtigungen setzen',
+                            attemptedSolution: 'User-Account geprüft, ist aktiv',
+                            targetTeam: 'Active Directory Team',
+                            quality: 'medium'
+                        }
+                    }
+                ],
+                currentTeam: 'Active Directory Team',
+                criticalCount: 4,
+                decisionType: 'type-c',
+                decisionLabel: 'Typ C – Eingreifen',
+                reasoningQuality: 35
+            },
+            {
+                id: 'TICKET-4823',
+                title: 'Outlook kann keine Anhänge öffnen',
+                transfers: 2,
+                loops: 0,
+                age: 6,
+                ageCategory: 'critical',
+                ownership: 'normal',
+                history: [
+                    { 
+                        team: 'Service Desk L1', 
+                        date: '2026-01-25 08:30', 
+                        action: 'Ticket erstellt',
+                        reason: null
+                    },
+                    { 
+                        team: 'Mail Team', 
+                        date: '2026-01-25 10:00', 
+                        action: 'Weitergeleitet',
+                        reason: {
+                            category: 'Zuständigkeit',
+                            description: 'Outlook/Mail-bezogenes Problem',
+                            attemptedSolution: 'Office Reparatur durchgeführt, ohne Erfolg',
+                            targetTeam: 'Mail Team',
+                            quality: 'high'
+                        }
+                    },
+                    { 
+                        team: 'Application Support', 
+                        date: '2026-01-27 14:20', 
+                        action: 'Weitergeleitet',
+                        reason: {
+                            category: 'Zuständigkeit',
+                            description: 'Anhänge sind Office-Dateien, könnte Application-Problem sein',
+                            attemptedSolution: 'Mail-Server-Logs geprüft, keine Fehler bei Zustellung',
+                            targetTeam: 'Application Support',
+                            quality: 'high'
+                        }
+                    }
+                ],
+                currentTeam: 'Application Support',
+                criticalCount: 2,
+                decisionType: 'type-b',
+                decisionLabel: 'Typ B – Klären',
+                reasoningQuality: 90
+            }
+        ];
+
+        let currentTickets = [...demoTickets];
+        let currentMode = 'demo';
+
+        // Initiales Rendering
+        renderTickets();
+        updateStats();
+
+        function switchMode(mode) {
+            currentMode = mode;
+            renderTickets();
+            updateStats();
+        }
+
+        function renderTickets() {
+            const container = document.getElementById('ticketList');
+            
+            if (currentTickets.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 60px 20px; color: #999;">
+                        <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.3;">📋</div>
+                        <div style="font-size: 18px; margin-bottom: 8px;">Keine auffälligen Tickets gefunden</div>
+                        <div style="font-size: 14px; color: #bbb;">Alle Tickets laufen im normalen Rahmen</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = currentTickets.map(ticket => {
+                const lastTransfer = ticket.history.filter(h => h.reason).pop();
+                const qualityClass = ticket.reasoningQuality >= 70 ? 'quality-high' : 
+                                   ticket.reasoningQuality >= 50 ? 'quality-medium' : 'quality-low';
+                
+                return `
+                    <div class="ticket-card ${ticket.decisionType}" onclick="showTicketDetails('${ticket.id}')">
+                        <div class="ticket-header">
+                            <div class="ticket-id">${ticket.id}</div>
+                            <div class="ticket-badges">
+                                <div class="ticket-badge ${ticket.decisionType}">${ticket.decisionLabel}</div>
+                                <div class="ticket-badge ${qualityClass}">Qualität: ${ticket.reasoningQuality}%</div>
+                            </div>
+                        </div>
+                        <div class="ticket-title">${ticket.title}</div>
+                        
+                        ${lastTransfer ? `
+                            <div class="reason-preview ${lastTransfer.reason.quality === 'low' ? 'suspicious' : ''}">
+                                <div class="reason-label">Letzte Weitergabe-Begründung:</div>
+                                <div class="reason-text">"${lastTransfer.reason.description}"</div>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="ticket-metrics">
+                            <div class="metric ${ticket.transfers >= 3 ? 'critical' : ''}">
+                                <span class="metric-icon">🔄</span>
+                                <span class="metric-label">Weitergaben:</span>
+                                <span class="metric-value">${ticket.transfers}</span>
+                            </div>
+                            <div class="metric ${ticket.loops > 0 ? 'critical' : ''}">
+                                <span class="metric-icon">🔁</span>
+                                <span class="metric-label">Schleifen:</span>
+                                <span class="metric-value">${ticket.loops}</span>
+                            </div>
+                            <div class="metric ${ticket.ageCategory === 'critical' ? 'critical' : ''}">
+                                <span class="metric-icon">⏰</span>
+                                <span class="metric-label">Liegezeit:</span>
+                                <span class="metric-value">${ticket.age} Tage</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-icon">👤</span>
+                                <span class="metric-label">Aktuell:</span>
+                                <span class="metric-value">${ticket.currentTeam}</span>
+                            </div>
+                        </div>
+                        <div class="ticket-action">
+                            <div class="action-label">${ticket.criticalCount} kritische Kriterien • ${countMissingReasons(ticket)} fehlende Begründungen</div>
+                            <button class="action-btn" onclick="event.stopPropagation(); showTicketDetails('${ticket.id}')">Details anzeigen</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function countMissingReasons(ticket) {
+            return ticket.history.filter(h => h.reason && !h.reason.attemptedSolution).length;
+        }
+
+        function updateStats() {
+            const stats = {
+                critical: currentTickets.filter(t => t.decisionType === 'type-c').length,
+                warning: currentTickets.filter(t => t.decisionType === 'type-b').length,
+                normal: currentTickets.filter(t => t.decisionType === 'type-a').length,
+                avgQuality: Math.round(currentTickets.reduce((sum, t) => sum + t.reasoningQuality, 0) / currentTickets.length)
+            };
+
+            document.getElementById('stat-critical').textContent = stats.critical;
+            document.getElementById('stat-warning').textContent = stats.warning;
+            document.getElementById('stat-normal').textContent = stats.normal;
+            document.getElementById('stat-quality').textContent = stats.avgQuality + '%';
+        }
+
+        function applyFilters() {
+            const filterType = document.getElementById('filterType').value;
+            const sortBy = document.getElementById('sortBy').value;
+
+            let filtered = [...demoTickets];
+
+            // Filter anwenden
+            if (filterType === 'quality-low') {
+                filtered = filtered.filter(t => t.reasoningQuality < 50);
+            } else if (filterType !== 'all') {
+                filtered = filtered.filter(t => t.decisionType === filterType);
+            }
+
+            // Sortierung anwenden
+            if (sortBy === 'priority') {
+                const priority = { 'type-c': 3, 'type-b': 2, 'type-a': 1 };
+                filtered.sort((a, b) => priority[b.decisionType] - priority[a.decisionType]);
+            } else if (sortBy === 'quality') {
+                filtered.sort((a, b) => a.reasoningQuality - b.reasoningQuality);
+            } else if (sortBy === 'transfers') {
+                filtered.sort((a, b) => b.transfers - a.transfers);
+            } else if (sortBy === 'age') {
+                filtered.sort((a, b) => b.age - a.age);
+            }
+
+            currentTickets = filtered;
+            renderTickets();
+            updateStats();
+        }
+
+        function showTicketDetails(ticketId) {
+            const ticket = demoTickets.find(t => t.id === ticketId);
+            if (!ticket) return;
+
+            document.getElementById('modalTicketId').textContent = ticket.id;
+            
+            const decisionContent = getDecisionContent(ticket);
+            const missingReasons = countMissingReasons(ticket);
+            
+            document.getElementById('modalBody').innerHTML = `
+                <div class="detail-section">
+                    <h3>Ticket-Information</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">Ticket-Titel</div>
+                            <div class="detail-value">${ticket.title}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Aktuelles Team</div>
+                            <div class="detail-value">${ticket.currentTeam}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Begründungs-Qualität</div>
+                            <div class="detail-value ${ticket.reasoningQuality < 50 ? 'critical' : ticket.reasoningQuality < 70 ? 'warning' : 'normal'}">${ticket.reasoningQuality}%</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Kritische Kriterien</div>
+                            <div class="detail-value ${ticket.criticalCount >= 2 ? 'critical' : ''}">${ticket.criticalCount}</div>
+                        </div>
+                    </div>
+
+                    ${missingReasons > 0 ? `
+                        <div class="warning-box">
+                            <div class="warning-icon">⚠️</div>
+                            <div class="warning-text">
+                                <strong>Fehlende Pflichtfelder:</strong> ${missingReasons} Weitergabe${missingReasons > 1 ? 'n' : ''} ohne vollständige Begründung. 
+                                Das erschwert die Nachvollziehbarkeit und deutet auf unklare Ownership hin.
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="detail-section">
+                    <h3>Weitergabe-Historie mit Begründungen</h3>
+                    <div class="timeline">
+                        ${ticket.history.map((item, index) => {
+                            const isSuspicious = item.reason && item.reason.quality === 'low';
+                            const qualityClass = item.reason ? 
+                                (item.reason.quality === 'high' ? 'high' : 
+                                 item.reason.quality === 'medium' ? 'medium' : 'low') : '';
+                            
+                            return `
+                                <div class="timeline-item ${item.loop ? 'loop' : ''} ${isSuspicious ? 'suspicious' : ''}">
+                                    <div class="timeline-content ${item.loop ? 'loop' : ''} ${isSuspicious ? 'suspicious' : ''}">
+                                        <div class="timeline-team">
+                                            ${item.team}
+                                            ${item.reason ? `<span class="quality-badge ${qualityClass}">${item.reason.quality}</span>` : ''}
+                                        </div>
+                                        <div class="timeline-action">${item.action}${item.loop ? ' ⚠️' : ''}</div>
+                                        <div class="timeline-date">${item.date}</div>
+                                        
+                                        ${item.reason ? `
+                                            <div class="timeline-reason-box ${!item.reason.attemptedSolution ? 'missing' : isSuspicious ? 'suspicious' : ''}">
+                                                <div class="reason-field">
+                                                    <div class="reason-field-label">Kategorie:</div>
+                                                    <div class="reason-field-value">${item.reason.category}</div>
+                                                </div>
+                                                <div class="reason-field">
+                                                    <div class="reason-field-label">Begründung:</div>
+                                                    <div class="reason-field-value">${item.reason.description}</div>
+                                                </div>
+                                                <div class="reason-field">
+                                                    <div class="reason-field-label">Versuchte Lösung: <span style="color: #EF5350;">*</span></div>
+                                                    <div class="reason-field-value ${!item.reason.attemptedSolution ? 'missing' : ''}">
+                                                        ${item.reason.attemptedSolution || '❌ FEHLT (Pflichtfeld!)'}
+                                                    </div>
+                                                </div>
+                                                <div class="reason-field">
+                                                    <div class="reason-field-label">Ziel-Team:</div>
+                                                    <div class="reason-field-value">${item.reason.targetTeam}</div>
+                                                </div>
+                                                
+                                                ${isSuspicious ? `
+                                                    <div class="analysis-box">
+                                                        <div class="analysis-title">🔍 Automatische Analyse</div>
+                                                        <div class="analysis-text">
+                                                            ${analyzeReason(item.reason)}
+                                                        </div>
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        ` : index > 0 ? `
+                                            <div class="timeline-reason-box missing">
+                                                <div class="reason-field-value missing">
+                                                    ❌ Keine Begründung erfasst (sollte Pflicht sein!)
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>Beispiel: Pflichtfelder bei Weitergabe (Mockup)</h3>
+                    <div class="transfer-form-demo">
+                        <h4>📝 Ticket weitergeben – Begründung erforderlich</h4>
+                        
+                        <div class="form-field">
+                            <label>Kategorie der Weitergabe <span class="required">*</span></label>
+                            <select disabled>
+                                <option>Zuständigkeit (anderes Team ist verantwortlich)</option>
+                                <option>Eskalation (höhere Expertise benötigt)</option>
+                                <option>Nicht zuständig (fälschlich zugewiesen)</option>
+                                <option>Weitere Informationen benötigt</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label>Begründung für Weitergabe <span class="required">*</span></label>
+                            <textarea disabled placeholder="Warum wird dieses Ticket weitergegeben? Was ist der konkrete Grund?"></textarea>
+                        </div>
+
+                        <div class="form-field">
+                            <label>Was wurde bereits versucht? <span class="required">*</span></label>
+                            <textarea disabled placeholder="Welche Lösungsversuche wurden unternommen, bevor das Ticket weitergegeben wird?"></textarea>
+                        </div>
+
+                        <div class="form-field">
+                            <label>Ziel-Team <span class="required">*</span></label>
+                            <select disabled>
+                                <option>Bitte wählen...</option>
+                                <option>Service Desk L1</option>
+                                <option>Network Team</option>
+                                <option>Hardware Support</option>
+                                <option>Application Support</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-top: 16px; padding: 12px; background: #e3f2fd; border-radius: 4px; font-size: 13px;">
+                            💡 <strong>Hinweis:</strong> Alle Felder mit <span style="color: #EF5350;">*</span> sind Pflichtfelder. 
+                            Das Ticket kann erst weitergegeben werden, wenn alle Informationen vollständig sind.
+                        </div>
+                    </div>
+                </div>
+
+                ${decisionContent}
+            `;
+
+            document.getElementById('ticketModal').classList.add('active');
+        }
+
+        function analyzeReason(reason) {
+            const issues = [];
+            
+            if (!reason.attemptedSolution) {
+                issues.push('Pflichtfeld "Versuchte Lösung" fehlt – unklar ob Troubleshooting stattfand');
+            }
+            
+            if (reason.attemptedSolution === 'Nichts gemacht') {
+                issues.push('Keine Lösungsversuche vor Weitergabe – deutet auf vorschnelle Weitergabe hin');
+            }
+            
+            if (reason.description.length < 30) {
+                issues.push('Sehr kurze Begründung – wenig Kontext für nächstes Team');
+            }
+            
+            const vagueTerms = ['könnte', 'vielleicht', 'eventuell', 'möglicherweise'];
+            if (vagueTerms.some(term => reason.description.toLowerCase().includes(term))) {
+                issues.push('Unsichere Formulierung – Ownership nicht klar definiert');
+            }
+            
+            return issues.length > 0 ? issues.join(' • ') : 'Begründung erscheint nachvollziehbar';
+        }
+
+        function getDecisionContent(ticket) {
+            if (ticket.decisionType === 'type-c') {
+                return `
+                    <div class="detail-section">
+                        <h3>Empfohlene Maßnahme</h3>
+                        <div class="decision-box type-c">
+                            <h4>🔴 Typ C – Sofort eingreifen</h4>
+                            <p><strong>Was bedeutet das?</strong></p>
+                            <p>Das Ticket zeigt mehrere kritische Warnsignale UND schlechte Begründungs-Qualität (${ticket.reasoningQuality}%). Du musst jetzt aktiv eingreifen.</p>
+                            
+                            <p><strong>Konkrete nächste Schritte:</strong></p>
+                            <ol>
+                                <li><strong>Ownership explizit festlegen:</strong> Weise das Ticket einem Team verbindlich zu</li>
+                                <li><strong>Fehlende Begründungen nachfordern:</strong> Teams müssen erklären, warum sie Pflichtfelder nicht ausgefüllt haben</li>
+                                <li><strong>Weitere Weitergaben stoppen:</strong> Keine Übergaben ohne deine Freigabe</li>
+                                <li><strong>Prozess-Review:</strong> Warum wurden Pflichtfelder nicht ausgefüllt?</li>
+                            </ol>
+
+                            <p><strong>Warum diese Entscheidung?</strong></p>
+                            <p>• ${ticket.criticalCount} kritische Kriterien identifiziert (inkl. ${ticket.loops} Schleife${ticket.loops > 1 ? 'n' : ''})<br>
+                            • Begründungs-Qualität nur ${ticket.reasoningQuality}% (deutet auf unklare Ownership)<br>
+                            • ${countMissingReasons(ticket)} Weitergabe${countMissingReasons(ticket) > 1 ? 'n' : ''} ohne vollständige Begründung</p>
+                        </div>
+                    </div>
+                `;
+            } else if (ticket.decisionType === 'type-b') {
+                return `
+                    <div class="detail-section">
+                        <h3>Empfohlene Maßnahme</h3>
+                        <div class="decision-box type-b">
+                            <h4>🟡 Typ B – Aktiv klären</h4>
+                            <p><strong>Was bedeutet das?</strong></p>
+                            <p>Du solltest aktiv zwischen den beteiligten Teams klären, wer verantwortlich ist. Die Begründungs-Qualität (${ticket.reasoningQuality}%) ${ticket.reasoningQuality >= 70 ? 'ist gut, aber' : 'könnte besser sein und'} es gibt Klärungsbedarf.</p>
+                            
+                            <p><strong>Konkrete nächste Schritte:</strong></p>
+                            <ol>
+                                <li><strong>Begründungen prüfen:</strong> Schaue dir alle Weitergabe-Begründungen an</li>
+                                <li><strong>Nachfragen bei unklaren Begründungen:</strong> Vor allem bei fehlenden Lösungsversuchen</li>
+                                <li><strong>Vorläufige Ownership festlegen:</strong> Bestimme, welches Team jetzt führt</li>
+                                <li><strong>Termin setzen:</strong> Spätestens in 24h soll Klarheit herrschen</li>
+                            </ol>
+
+                            <p><strong>Warum diese Entscheidung?</strong></p>
+                            <p>• ${ticket.criticalCount} kritische Kriterien identifiziert<br>
+                            ${ticket.loops > 0 ? `• ${ticket.loops} Schleife${ticket.loops > 1 ? 'n' : ''} erkannt (Ownership unklar)<br>` : ''}
+                            ${countMissingReasons(ticket) > 0 ? `• ${countMissingReasons(ticket)} unvollständige Begründung${countMissingReasons(ticket) > 1 ? 'en' : ''}<br>` : ''}
+                            • Begründungs-Qualität: ${ticket.reasoningQuality}%</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="detail-section">
+                        <h3>Empfohlene Maßnahme</h3>
+                        <div class="decision-box type-a">
+                            <h4>🟢 Typ A – Beobachten</h4>
+                            <p><strong>Was bedeutet das?</strong></p>
+                            <p>Das Ticket zeigt noch keine kritischen Warnsignale. Die Begründungs-Qualität (${ticket.reasoningQuality}%) ist ${ticket.reasoningQuality >= 70 ? 'gut' : 'akzeptabel'}. Keine unmittelbare Intervention nötig.</p>
+                            
+                            <p><strong>Konkrete nächste Schritte:</strong></p>
+                            <ol>
+                                <li><strong>Ticket im Blick behalten:</strong> Prüfe in 24–48h erneut</li>
+                                <li><strong>Begründungen monitoren:</strong> Achte darauf, dass Pflichtfelder ausgefüllt werden</li>
+                                <li><strong>Keine Eskalation:</strong> Lass das Team arbeiten</li>
+                            </ol>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('ticketModal').classList.remove('active');
+        }
+
+        // Modal schließen bei Klick außerhalb
+        document.getElementById('ticketModal').addEventListener('click', (e) => {
+            if (e.target.id === 'ticketModal') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
